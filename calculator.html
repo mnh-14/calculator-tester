@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Advanced Calculator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+  }
+
+  .calculator {
+    width: 380px;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 24px;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+  }
+
+  .display {
+    background: rgba(0,0,0,0.35);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 20px;
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-end;
+    word-break: break-all;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .expression {
+    color: rgba(255,255,255,0.45);
+    font-size: 16px;
+    min-height: 24px;
+    margin-bottom: 8px;
+    width: 100%;
+    text-align: right;
+  }
+
+  #result {
+    color: #fff;
+    font-size: 38px;
+    font-weight: 300;
+    width: 100%;
+    text-align: right;
+    transition: font-size 0.15s;
+  }
+
+  .btn-row { display: flex; gap: 10px; margin-bottom: 10px; }
+
+  .btn {
+    flex: 1;
+    height: 58px;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    outline: none;
+    font-family: inherit;
+  }
+
+  .btn:active { transform: scale(0.94); }
+
+  .btn-func {
+    background: rgba(255,255,255,0.1);
+    color: #a5b4fc;
+  }
+  .btn-func:hover { background: rgba(255,255,255,0.18); }
+
+  .btn-op {
+    background: rgba(129,140,248,0.25);
+    color: #c7d2fe;
+  }
+  .btn-op:hover { background: rgba(129,140,248,0.4); }
+
+  .btn-num {
+    background: rgba(255,255,255,0.08);
+    color: #e2e8f0;
+  }
+  .btn-num:hover { background: rgba(255,255,255,0.15); }
+
+  .btn-eq {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    font-size: 22px;
+    font-weight: 600;
+  }
+  .btn-eq:hover { filter: brightness(1.15); }
+
+  .btn-clear {
+    background: rgba(239,68,68,0.25);
+    color: #fca5a5;
+  }
+  .btn-clear:hover { background: rgba(239,68,68,0.4); }
+
+  .btn-wide { flex: 2.1; }
+
+  .history-toggle {
+    text-align: right;
+    margin-bottom: 14px;
+  }
+
+  .history-toggle button {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.5);
+    padding: 5px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .history-toggle button:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+  .history-panel {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    margin-bottom: 0;
+  }
+  .history-panel.open { max-height: 200px; margin-bottom: 14px; }
+
+  .history-panel ul {
+    list-style: none;
+    max-height: 180px;
+    overflow-y: auto;
+    padding: 10px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .history-panel li {
+    color: rgba(255,255,255,0.5);
+    font-size: 13px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+  .history-panel li:hover { color: #a5b4fc; }
+  .history-panel li:last-child { border-bottom: none; }
+
+  .history-panel .empty { color: rgba(255,255,255,0.25); text-align: center; font-style: italic; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<div class="calculator">
+  <div class="history-toggle">
+    <button id="historyBtn" onclick="toggleHistory()">History</button>
+  </div>
+
+  <div class="history-panel" id="historyPanel">
+    <ul id="historyList"><li class="empty">No history yet</li></ul>
+  </div>
+
+  <div class="display">
+    <div class="expression" id="expression"></div>
+    <div id="result">0</div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-func" onclick="inputFunc('sin(')">sin</button>
+    <button class="btn btn-func" onclick="inputFunc('cos(')">cos</button>
+    <button class="btn btn-func" onclick="inputFunc('tan(')">tan</button>
+    <button class="btn btn-func" onclick="inputFunc('log(')">log</button>
+    <button class="btn btn-func" onclick="inputFunc('ln(')">ln</button>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-func" onclick="inputFunc('asin(')">sin⁻¹</button>
+    <button class="btn btn-func" onclick="inputFunc('acos(')">cos⁻¹</button>
+    <button class="btn btn-func" onclick="inputFunc('atan(')">tan⁻¹</button>
+    <button class="btn btn-func" onclick="inputFunc('sqrt(')">√</button>
+    <button class="btn btn-func" onclick="inputText('^')">xʸ</button>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-clear" onclick="clearAll()">AC</button>
+    <button class="btn btn-func" onclick="inputText('(')">(</button>
+    <button class="btn btn-func" onclick="inputText(')')">)</button>
+    <button class="btn btn-func" onclick="inputText('%')">%</button>
+    <button class="btn btn-op" onclick="inputText('/')">÷</button>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-num" onclick="inputText('7')">7</button>
+    <button class="btn btn-num" onclick="inputText('8')">8</button>
+    <button class="btn btn-num" onclick="inputText('9')">9</button>
+    <button class="btn btn-op" onclick="inputText('*')">×</button>
+    <button class="btn btn-func" onclick="backspace()">⌫</button>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-num" onclick="inputText('4')">4</button>
+    <button class="btn btn-num" onclick="inputText('5')">5</button>
+    <button class="btn btn-num" onclick="inputText('6')">6</button>
+    <button class="btn btn-op" onclick="inputText('-')">−</button>
+    <button class="btn btn-func" onclick="inputFunc('pi')">π</button>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-num" onclick="inputText('1')">1</button>
+    <button class="btn btn-num" onclick="inputText('2')">2</button>
+    <button class="btn btn-num" onclick="inputText('3')">3</button>
+    <button class="btn btn-op" onclick="inputText('+')">+</button>
+    <button class="btn btn-func" onclick="inputFunc('e')">e</button>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-num btn-wide" onclick="inputText('0')">0</button>
+    <button class="btn btn-num" onclick="inputText('.')">.</button>
+    <button class="btn btn-eq" onclick="calculate()">=</button>
+  </div>
+</div>
+
+<script>
+  let expression = '';
+  let history = [];
+
+  const expressionEl = document.getElementById('expression');
+  const resultEl = document.getElementById('result');
+  const historyList = document.getElementById('historyList');
+  const historyPanel = document.getElementById('historyPanel');
+
+  function inputText(val) {
+    expression += val;
+    updateDisplay();
+  }
+
+  function inputFunc(fn) {
+    expression += fn;
+    updateDisplay();
+  }
+
+  function clearAll() {
+    expression = '';
+    resultEl.textContent = '0';
+    expressionEl.textContent = '';
+    resultEl.style.fontSize = '38px';
+  }
+
+  function backspace() {
+    expression = expression.slice(0, -1);
+    updateDisplay();
+  }
+
+  function updateDisplay() {
+    let display = expression
+      .replace(/\*/g, '×')
+      .replace(/\//g, '÷')
+      .replace(/pi/g, 'π');
+    expressionEl.textContent = display;
+    if (expression.length > 22) resultEl.style.fontSize = '24px';
+    else resultEl.style.fontSize = '38px';
+  }
+
+  function toggleHistory() {
+    historyPanel.classList.toggle('open');
+    document.getElementById('historyBtn').textContent = historyPanel.classList.contains('open') ? 'Hide History' : 'History';
+  }
+
+  function addToHistory(expr, result) {
+    history.unshift({ expr, result });
+    if (history.length > 50) history.pop();
+    renderHistory();
+  }
+
+  function renderHistory() {
+    if (history.length === 0) {
+      historyList.innerHTML = '<li class="empty">No history yet</li>';
+      return;
+    }
+    historyList.innerHTML = history.map((h, i) =>
+      `<li onclick="loadHistory(${i})">${h.expr} = ${h.result}</li>`
+    ).join('');
+  }
+
+  function loadHistory(index) {
+    expression = String(history[index].result);
+    resultEl.textContent = history[index].result;
+    expressionEl.textContent = history[index].expr + ' =';
+    updateDisplay();
+  }
+
+  function calculate() {
+    try {
+      let expr = expression;
+
+      // Handle implicit multiplication: 2pi, 2e, 2(..., )2, etc.
+      expr = expr.replace(/(\d)(pi|e)/gi, '$1*$2');
+      expr = expr.replace(/(\))(\d|pi|e|\()/gi, '$1*$2');
+      expr = expr.replace(/(pi|e)(\d|\()/gi, '$1*$2');
+
+      // Replace constants
+      expr = expr.replace(/\bpi\b/gi, `(${Math.PI})`);
+      expr = expr.replace(/\be\b/g, `(${Math.E})`);
+
+      // Replace power operator
+      expr = expr.replace(/\^/g, '**');
+
+      // Replace % with /100
+      expr = expr.replace(/(\d+(\.\d+)?)%/g, '($1/100)');
+
+      // Trig functions (radians)
+      expr = expr.replace(/\basin\(/g, 'Math.asin(');
+      expr = expr.replace(/\bacos\(/g, 'Math.acos(');
+      expr = expr.replace(/\batan\(/g, 'Math.atan(');
+      expr = expr.replace(/\bsin\(/g, 'Math.sin(');
+      expr = expr.replace(/\bcos\(/g, 'Math.cos(');
+      expr = expr.replace(/\btan\(/g, 'Math.tan(');
+
+      // Log / Ln
+      expr = expr.replace(/\blog\(/g, 'Math.log10(');
+      expr = expr.replace(/\bln\(/g, 'Math.log(');
+      expr = expr.replace(/\bsqrt\(/g, 'Math.sqrt(');
+
+      // Auto-close unclosed parentheses
+      let opens = (expr.match(/\(/g) || []).length;
+      let closes = (expr.match(/\)/g) || []).length;
+      while (closes < opens) { expr += ')'; closes++; }
+
+      let result = Function('"use strict"; return (' + expr + ')')();
+
+      if (typeof result !== 'number' || isNaN(result)) {
+        resultEl.textContent = 'Error';
+        return;
+      }
+
+      let formatted = parseFloat(result.toPrecision(12));
+      let displayExpr = expression
+        .replace(/\*/g, '×')
+        .replace(/\//g, '÷')
+        .replace(/pi/gi, 'π');
+
+      expressionEl.textContent = displayExpr + ' =';
+      resultEl.textContent = formatted;
+
+      addToHistory(displayExpr, formatted);
+
+      expression = String(formatted);
+    } catch {
+      resultEl.textContent = 'Error';
+    }
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key >= '0' && e.key <= '9') inputText(e.key);
+    else if (e.key === '+') inputText('+');
+    else if (e.key === '-') inputText('-');
+    else if (e.key === '*') inputText('*');
+    else if (e.key === '/') { e.preventDefault(); inputText('/'); }
+    else if (e.key === '.') inputText('.');
+    else if (e.key === '(') inputText('(');
+    else if (e.key === ')') inputText(')');
+    else if (e.key === '^') inputText('^');
+    else if (e.key === '%') inputText('%');
+    else if (e.key === 'Enter' || e.key === '=') calculate();
+    else if (e.key === 'Backspace') backspace();
+    else if (e.key === 'Escape') clearAll();
+  });
+</script>
+
+</body>
+</html>
